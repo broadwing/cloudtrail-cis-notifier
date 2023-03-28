@@ -5,7 +5,7 @@ locals {
 resource "aws_cloudtrail" "cloudtrail_cis_notifier" {
   name                          = "cloudtrail_cis_notifier"
   s3_bucket_name                = aws_s3_bucket.cloudtrail_cis_notifier.id
-  cloud_watch_logs_group_arn    = aws_cloudwatch_log_group.cloudtrail_cis_notifier.arn
+  cloud_watch_logs_group_arn     = "${aws_cloudwatch_log_group.cloudtrail_cis_notifier.arn}:*" # CloudTrail requires the Log Stream wildcard
   cloud_watch_logs_role_arn     = aws_iam_role.cloudtrail_cis_notifier.arn
   is_multi_region_trail         = true
   include_global_service_events = true
@@ -34,6 +34,11 @@ resource "aws_s3_bucket" "cloudtrail_cis_notifier" {
   tags = {
     ManagedBy = "terraform"
   }
+}
+
+# Bucket policy to allow CloudTrail to write to the bucket
+resource "aws_s3_bucket_policy" "cloudtrail_cis_notifier" {
+  bucket = aws_s3_bucket.cloudtrail_cis_notifier.id
 
   policy = <<POLICY
 {

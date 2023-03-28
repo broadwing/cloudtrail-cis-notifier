@@ -41,7 +41,7 @@ resource "aws_iam_role_policy" "cloudtrail_cis_notifier" {
         "logs:PutLogEvents"
       ],
       "Resource": [
-        "${aws_cloudwatch_log_group.cloudtrail_cis_notifier.arn}"
+        "${aws_cloudwatch_log_group.cloudtrail_cis_notifier.arn}:*"
       ]
 
     }

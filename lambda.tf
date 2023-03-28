@@ -10,7 +10,7 @@ resource "aws_lambda_function" "cloudtrail_cis_notifier" {
   role             = aws_iam_role.cloudtrail_cis_notifier_lambda.arn
   handler          = "cloudtrail-cis-notifier.lambda_handler"
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
-  runtime          = "python3.6"
+  runtime          = "python3.9"
 
   environment {
     variables = {
@@ -68,7 +68,7 @@ resource "aws_iam_role_policy" "cloudtrail_cis_notifier_lambda_policy" {
         "logs:PutLogEvents"
       ],
       "Resource": [
-        "${aws_cloudwatch_log_group.cloudtrail_cis_notifier_lambda.arn}"
+        "${aws_cloudwatch_log_group.cloudtrail_cis_notifier_lambda.arn}:*"
       ]
     },
     {
@@ -94,9 +94,9 @@ resource "aws_lambda_alias" "cloudtrail_cis_notifier" {
 resource "aws_lambda_permission" "allow_cloudwatch" {
   statement_id  = "AllowExecutionFromCloudWatch"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.cloudtrail_cis_notifier.arn
+  function_name = aws_lambda_function.cloudtrail_cis_notifier.function_name
   principal     = "logs.${data.aws_region.current.name}.amazonaws.com"
-  source_arn    = aws_cloudwatch_log_group.cloudtrail_cis_notifier.arn
+  source_arn    = "${aws_cloudwatch_log_group.cloudtrail_cis_notifier.arn}:*"
 }
 
 resource "aws_cloudwatch_log_subscription_filter" "cloudtrail-cis-notifier" {
