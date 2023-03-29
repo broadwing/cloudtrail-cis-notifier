@@ -11,6 +11,7 @@ resource "aws_cloudtrail" "cloudtrail_cis_notifier" {
   is_multi_region_trail         = true
   include_global_service_events = true
   enable_log_file_validation    = true
+  is_organization_trail         = var.is_organization_trail
 
   # Not sure why terraform always thinks this needs to be applied. It does persist on a run
   event_selector {
