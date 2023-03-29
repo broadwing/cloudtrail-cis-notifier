@@ -119,7 +119,7 @@ def match_event(event):
             return "3.6 Console Login Failure"
         # 3.7 Scheduled Deletion of CMK
         if event["eventSource"] == "kms.amazonaws.com" and event["eventName"] in ["DisableKey", "ScheduleKeyDeletion"]:
-            return "3.7 Scheduled Deletion of CMK"
+            return "3.7 Scheduled Deletion of KMS"
         # 3.8 S3 Bucket Policy Changed
         if event["eventSource"] == "s3.amazonaws.com" and event["eventName"] in ["PutBucketAcl", "PutBucketPolicy", "PutBucketCors", "PutBucketLifecycle", "PutBucketReplication", "DeleteBucketPolicy", "DeleteBucketCors", "DeleteBucketLifecycle", "DeleteBucketReplication"]:
             return "3.8 S3 Bucket Policy Changed"
