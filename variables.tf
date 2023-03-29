@@ -17,3 +17,8 @@ variable "is_organization_trail" {
   default     = false
   description = "Whether or not this is an organization trail. Can only be set to true if deploying this to a master account"
 }
+variable "resource_name" {
+  type        = string
+  default     = "cloudtrail-cis-notifier"
+  description = "The name of the resources to create. Such as the lambda function, cloudwatch log group, etc."
+}

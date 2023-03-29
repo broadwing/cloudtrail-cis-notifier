@@ -6,7 +6,7 @@ data "archive_file" "lambda_zip" {
 
 resource "aws_lambda_function" "cloudtrail_cis_notifier" {
   filename         = "${path.module}/cloudtrail-cis-notifier.zip"
-  function_name    = "cloudtrail-cis-notifier"
+  function_name    = var.resource_name
   role             = aws_iam_role.cloudtrail_cis_notifier_lambda.arn
   handler          = "cloudtrail-cis-notifier.lambda_handler"
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
@@ -18,12 +18,13 @@ resource "aws_lambda_function" "cloudtrail_cis_notifier" {
       slack_channel = var.slack_channel
       hook_url      = var.slack_hook_url
       search_prefix = "https://console.aws.amazon.com/cloudwatch/home?region=${data.aws_region.current.name}#logEventViewer:group=${aws_cloudwatch_log_group.cloudtrail_cis_notifier.name}"
+      resource_name = var.resource_name
     }
   }
 }
 
 resource "aws_cloudwatch_log_group" "cloudtrail_cis_notifier_lambda" {
-  name = "/aws/lambda/cloudtrail-cis-notifier"
+  name = "/aws/lambda/${var.resource_name}"
 
   tags = {
     ManagedBy = "terraform"

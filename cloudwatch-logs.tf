@@ -1,5 +1,5 @@
 resource "aws_cloudwatch_log_group" "cloudtrail_cis_notifier" {
-  name = "/cloudtrail-cis-notifier"
+  name = "/aws/cloudtrail/${var.resource_name}"
 
   tags = {
     ManagedBy = "terraform"

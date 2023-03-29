@@ -24,6 +24,8 @@ ACCOUNT_NAME = os.environ.get('account_name', None)
 # Cloudwatch logs search prefix
 SEARCH_PREFIX= os.environ['search_prefix']
 
+RESOURCE_NAME = os.environ['resource_name']
+
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
@@ -105,10 +107,10 @@ def match_event(event):
         if event["eventName"] in ["CreateTrail", "UpdateTrail", "DeleteTrail", "StartLogging", "StopLogging"]:
             return "3.5 Cloudtrail Configuration Changed"
         # 3.5 Slack-notifier code changed
-        if "UpdateFunctionCode" in event["eventName"] and "functionName" in event["responseElements"] and event["responseElements"]["functionName"] == "slack-notifier":
-            return "3.5 Slack Notifier Lambda Code Changed"
-        if event["eventSource"] == "logs.amazonaws.com" and event["eventName"] in ["PutSubscriptionFilter", "DeleteSubscriptionFilter", "DeleteLogGroup"] and "logGroupName" in event["requestParameters"] and event["requestParameters"]["logGroupName"] in ["/slack-notifier/cloudtrail", "/aws/lambda/slack-notifier"]:
-            return "3.5 Slack Notifier Log Group or Subscription Filter Changed"
+        if "UpdateFunctionCode" in event["eventName"] and "functionName" in event["responseElements"] and event["responseElements"]["functionName"] == RESOURCE_NAME:
+            return "3.5 CIS Slack Notifier Lambda Code Changed"
+        if event["eventSource"] == "logs.amazonaws.com" and event["eventName"] in ["PutSubscriptionFilter", "DeleteSubscriptionFilter", "DeleteLogGroup"] and "logGroupName" in event["requestParameters"] and event["requestParameters"]["logGroupName"] in ["/aws/cloudtrail/" + RESOURCE_NAME, "/aws/lambda/" + RESOURCE_NAME]:
+            return "3.5 CIS Slack Notifier Log Group or Subscription Filter Changed"
         # 3.6 Console Login Failure
         if event["eventName"] == "ConsoleLogin" and "errorMessage" in event and event["errorMessage"] == "Failed authentication":
             return "3.6 Console Login Failure - Failed Authentication"
