@@ -1,5 +1,6 @@
 locals {
-  bucket_name = "${var.env}-cloudtrail-cis-notifier-${random_pet.name.id}"
+  random_bucket_name = "cloudtrail-cis-notifier-${random_pet.name.id}"
+  bucket_name = var.account_name == "" ? local.random_bucket_name : "${var.account_name}-${local.random_bucket_name}"
 }
 
 resource "aws_cloudtrail" "cloudtrail_cis_notifier" {

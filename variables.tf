@@ -1,5 +1,7 @@
-variable "env" {
+variable "account_name" {
   type = string
+  default = ""
+  description = "An extra identifier for the account that will show on all messages"
 }
 
 variable "slack_channel" {

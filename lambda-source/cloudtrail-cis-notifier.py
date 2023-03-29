@@ -18,8 +18,8 @@ HOOK_URL = os.environ['hook_url']
 # The Slack channel to send a message to stored in the slackChannel environment variable
 SLACK_CHANNEL = os.environ['slack_channel']
 
-# Account name to show on messages
-ACCOUNT = os.environ['account']
+# account name to show on messages get from os.environ if set
+ACCOUNT_NAME = os.environ.get('account_name', None)
 
 # Cloudwatch logs search prefix
 SEARCH_PREFIX= os.environ['search_prefix']
@@ -207,7 +207,9 @@ def slack_time(event):
     return int(time.mktime(time.strptime(event["eventTime"], "%Y-%m-%dT%H:%M:%SZ")))
 
 def slack_account(event):
-    return ACCOUNT + ": " + event["recipientAccountId"]
+    if ACCOUNT_NAME:
+        return ACCOUNT_NAME + " (" + event["recipientAccountId"] + ")"
+    return event["recipientAccountId"]
 
 def slack_event_link(event):
     return SEARCH_PREFIX + ";filter=%22" + event["eventID"] + "%22"
