@@ -26,13 +26,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run tests
+    - name: Build coverage file
       working-directory: lambda-source
-      run: pytest --junitxml=test-results.xml
+      run: |
+        pytest --junitxml=pytest.xml test_cloudtrail_cis_notifier.py | tee pytest-coverage.txt
 
-    - name: Upload test results to GitHub
-      uses: actions/upload-artifact@v2
-      if: always()
+    - name: Pytest coverage comment
+      uses: MishaKav/pytest-coverage-comment@main
       with:
-        name: Test results
-        path: lambda-source/test-results.xml
+        junitxml-path: lambda-source/pytest.xml
