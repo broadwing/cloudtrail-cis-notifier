@@ -1,2 +1,3 @@
 cloudtrail-cis-notifier.zip
+lambda-source/__pycache__/
 .terraform/**

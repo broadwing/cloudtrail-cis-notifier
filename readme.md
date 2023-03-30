@@ -34,11 +34,13 @@ module "cloudtrail-cis-notifier" {
 
 ## Testing
 
-Generate test data for the lambda function with
+Run unit tests with `python ./lambda-source/test_cloudtrail_cis_notifier.py`
 
-`lambda-source/generate-test-message.sh | pbcopy`
+You can also simulate events and trigger messages by
 
-Resulting json can be added to the `lambda` test functions within the aws console.
+  1. running `lambda-source/generate-test-message.sh | pbcopy` (you can also edit `decoded-test-messages.json` to make a subset of events to reduce noise)
+  2. Open the lambda function in the in the aws console
+  3. Click the `Test` tab and paste the generated message into the `Event Json` and click `Test`
 
 ## Alerts
 | Name | Description|
@@ -46,8 +48,8 @@ Resulting json can be added to the `lambda` test functions within the aws consol
 | `3.1 Unauthorized API Call` | Event is an `UnauthorizedOperation` or `AccessDenied`
 | `3.2 Console Login without MFA` | User successfully logged in without using MFA
 | `3.3 Root Account Used` | Root account was used for any operation
-| `3.4 Iam Policy Changed` | Any IAM policy was deleted, created, edited, attached, or detached
-| `3.5 Cloudtrail Configuration Changed` | A cloudtrail, including this one, was created, updated, deleted, stopped, or started
+| `3.4 IAM Policy Changed` | Any IAM policy was deleted, created, edited, attached, or detached
+| `3.5 CloudTrail Configuration Changed` | A cloudtrail, including this one, was created, updated, deleted, stopped, or started
 | `3.5 Slack Notifier Lambda Code Changed` | This lambda function code was changed
 | `3.5 Slack Notifier Log Group or Subscription Filter Changed` | This module's log group or subscription were changed
 | `3.6 Console Login Failure - Failed Authentication` | A failed login to this account or organization. Real user but wrong password.

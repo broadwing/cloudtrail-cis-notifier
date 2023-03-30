@@ -10,18 +10,18 @@ from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
 
 # The Slack hook url to send events to
-HOOK_URL = os.environ['hook_url']
+HOOK_URL = os.environ.get('hook_url', None)
 
 # The Slack channel to send a message to stored in the slackChannel environment variable
-SLACK_CHANNEL = os.environ['slack_channel']
+SLACK_CHANNEL = os.environ.get('slack_channel', None)
 
 # account name to show on messages get from os.environ if set
 ACCOUNT_NAME = os.environ.get('account_name', None)
 
 # Cloudwatch logs search prefix
-SEARCH_PREFIX = os.environ['search_prefix']
+SEARCH_PREFIX = os.environ.get('search_prefix', None)
 
-RESOURCE_NAME = os.environ['resource_name']
+RESOURCE_NAME = os.environ.get('resource_name', None)
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -91,7 +91,7 @@ def get_events(data):
 def match_event(event):
     """Match events based on predefined rules and return the matched rule."""
     try:
-                # 3.1 Unauthorized API
+        # 3.1 Unauthorized API
         if "errorCode" in event and ("UnauthorizedOperation" in event["errorCode"] or "AccessDenied" in event["errorCode"]):
             return "3.1 Unauthorized API Call"
         # 3.2 Login with No MFA
@@ -102,10 +102,10 @@ def match_event(event):
             return "3.3 Root Account Used"
         # 3.4 Iam Policy Changed
         if event["eventName"] in ["DeleteGroupPolicy", "DeleteRolePolicy", "DeleteUserPolicy", "PutGroupPolicy", "PutRolePolicy", "PutUserPolicy", "CreatePolicy", "DeletePolicy", "CreatePolicyVersion", "DeletePolicyVersion", "AttachRolePolicy", "DetachRolePolicy", "AttachUserPolicy", "DetachUserPolicy", "AttachGroupPolicy", "DetachGroupPolicy"]:
-            return "3.4 Iam Policy Changed"
+            return "3.4 IAM Policy Changed"
         # 3.5 Cloudtrail Configuration Changed
         if event["eventName"] in ["CreateTrail", "UpdateTrail", "DeleteTrail", "StartLogging", "StopLogging"]:
-            return "3.5 Cloudtrail Configuration Changed"
+            return "3.5 CloudTrail Configuration Changed"
         # 3.5 Slack-notifier code changed
         if "UpdateFunctionCode" in event["eventName"] and "functionName" in event["responseElements"] and event["responseElements"]["functionName"] == RESOURCE_NAME:
             return "3.5 CIS Slack Notifier Lambda Code Changed"

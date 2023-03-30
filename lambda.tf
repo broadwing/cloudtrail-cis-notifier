@@ -8,7 +8,7 @@ resource "aws_lambda_function" "cloudtrail_cis_notifier" {
   filename         = "${path.module}/cloudtrail-cis-notifier.zip"
   function_name    = var.resource_name
   role             = aws_iam_role.cloudtrail_cis_notifier_lambda.arn
-  handler          = "cloudtrail-cis-notifier.lambda_handler"
+  handler          = "cloudtrail_cis_notifier.lambda_handler"
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
   runtime          = "python3.9"
 
