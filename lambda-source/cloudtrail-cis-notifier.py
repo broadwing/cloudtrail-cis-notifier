@@ -2,15 +2,12 @@ import boto3
 import json
 import logging
 import os
-import zlib
 import gzip
 import time
-import re
 
 from base64 import b64decode
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
-from pprint import pprint
 
 # The Slack hook url to send events to
 HOOK_URL = os.environ['hook_url']
@@ -22,14 +19,13 @@ SLACK_CHANNEL = os.environ['slack_channel']
 ACCOUNT_NAME = os.environ.get('account_name', None)
 
 # Cloudwatch logs search prefix
-SEARCH_PREFIX= os.environ['search_prefix']
+SEARCH_PREFIX = os.environ['search_prefix']
 
 RESOURCE_NAME = os.environ['resource_name']
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
-# logger.info(HOOK_URL);
 logger.info(SLACK_CHANNEL)
 
 # Skipped Event Names
@@ -37,10 +33,10 @@ SKIP_EVENT_NAMES = ["CreateLogStream"]
 
 
 def lambda_handler(event, context):
-
+    """Lambda function entry point."""
     if "awslogs" not in event or "data" not in event["awslogs"]:
         logger.info("Skipping - no records in event")
-        logger.info("event: " + str(event))
+        logger.info(f"event: {str(event)}")
         return
 
     ctevents = get_events(event)
@@ -58,12 +54,12 @@ def lambda_handler(event, context):
         else:
             skipped_events += 1
 
-    if (skipped_events):
-        logger.info("Skipped " + str(skipped_events) + " events")
+    if skipped_events:
+        logger.info(f"Skipped {skipped_events} events")
 
-    if len(attachments) > 0 :
+    if len(attachments) > 0:
         slack_message = {
-            "channel":  SLACK_CHANNEL,
+            "channel": SLACK_CHANNEL,
             "attachments": attachments
         }
 
@@ -72,14 +68,16 @@ def lambda_handler(event, context):
         try:
             response = urlopen(req)
             response.read()
-            logger.info("Message posted to %s with %i messages", slack_message['channel'], len(attachments))
+            logger.info(
+                f"Message posted to {slack_message['channel']} with {len(attachments)} messages")
         except HTTPError as e:
-            logger.error("Request failed: %d %s", e.code, e.reason)
+            logger.error(f"Request failed: {e.code} {e.reason}")
         except URLError as e:
-            logger.error("Server connection failed: %s", e.reason)
+            logger.error(f"Server connection failed: {e.reason}")
 
 
 def get_events(data):
+    """Extract and return events from the data."""
     events = []
     decompressed_data = gzip.decompress(b64decode(data["awslogs"]["data"]))
     ctdata = json.loads(decompressed_data)
@@ -89,9 +87,11 @@ def get_events(data):
 
     return events
 
+
 def match_event(event):
+    """Match events based on predefined rules and return the matched rule."""
     try:
-        # 3.1 Unauthorized API
+                # 3.1 Unauthorized API
         if "errorCode" in event and ("UnauthorizedOperation" in event["errorCode"] or "AccessDenied" in event["errorCode"]):
             return "3.1 Unauthorized API Call"
         # 3.2 Login with No MFA
@@ -146,16 +146,18 @@ def match_event(event):
             return "3.15 SNS Subscribers Changed"
     except Exception as e:
         logger.error(e)
-        return "Match Error: " + e.message
+        return f"Match Error: {e}"
 
     return False
 
-def format_slack_attachment(event, matchedRule = ""):
+
+def format_slack_attachment(event, matchedRule=""):
+    """Format and return a Slack attachment for the given event and matched rule."""
     return {
         "fallback": slack_fallback_text(event),
         "color": slack_color(event),
-        "author_name": slack_user(event) + " on Account: " + slack_account(event),
-        "title": slack_event_title(event) ,
+        "author_name": f"{slack_user(event)} on Account: {slack_account(event)}",
+        "title": slack_event_title(event),
         "text": slack_event_text(event, matchedRule),
         "title_link": slack_event_link(event),
         "footer": slack_event_footer(event, matchedRule),
@@ -163,41 +165,54 @@ def format_slack_attachment(event, matchedRule = ""):
         "ts": slack_time(event)
     }
 
+
 def slack_event_title(event):
-    return event["eventName"] + " - " + event["eventSource"]
+    """Generate and return the Slack event title."""
+    return f"{event['eventName']} - {event['eventSource']}"
+
 
 def slack_user(event):
+    """Generate and return the Slack user string."""
     if 'userIdentity' not in event:
         return "Unknown User Identity"
 
     identity = event['userIdentity']
 
     if identity['type'] == 'IAMUser':
-        return "User " + identity['userName']
+        return f"User {identity['userName']}"
     if identity['type'] == 'Root':
         return "ROOT Account"
     if identity['type'] == "AssumedRole":
-        p = "Assumed Role by " + identity['sessionContext']['sessionIssuer']['type']
+        p = f"Assumed Role by {identity['sessionContext']['sessionIssuer']['type']}"
         if identity['sessionContext']['sessionIssuer']['type'] != "Root":
-            p = p + " " + identity['sessionContext']['sessionIssuer']['userName']
+            p = f"{p} {identity['sessionContext']['sessionIssuer']['userName']}"
         return p
 
     return identity['type']
 
 
 def slack_event_text(event, matchedRule):
-    return matchedRule + " - " +  event["eventType"]
+    """Generate and return the Slack event text."""
+
+    return f"{matchedRule} - {event['eventType']}"
+
 
 def slack_event_footer(event, matchedRule):
-    if len( event["userAgent"]) > 40:
-        return  "Agent: " + event["userAgent"][:40] + "..."
+    """Generate and return the Slack event footer."""
+    if len(event["userAgent"]) > 40:
 
-    return  "Agent: " + event["userAgent"]
+        return f"Agent: {event['userAgent'][:40]}..."
+
+    return f"Agent: {event['userAgent']}"
+
 
 def slack_fallback_text(event):
-    return "AWS Event " + slack_event_title(event) + " by " + slack_user(event)
+    """Generate and return the Slack fallback text."""
+    return f"AWS Event {slack_event_title(event)} by {slack_user(event)}"
+
 
 def slack_color(event):
+    """Determine and return the Slack color for the event."""
     if event["userIdentity"]["type"] == "root":
         return "#cc0000"
 
@@ -206,12 +221,18 @@ def slack_color(event):
 
 
 def slack_time(event):
+    """Convert and return the event time to Slack timestamp format."""
     return int(time.mktime(time.strptime(event["eventTime"], "%Y-%m-%dT%H:%M:%SZ")))
 
+
 def slack_account(event):
+    """Generate and return the Slack account string."""
     if ACCOUNT_NAME:
-        return ACCOUNT_NAME + " (" + event["recipientAccountId"] + ")"
+        return f"{ACCOUNT_NAME} ({event['recipientAccountId']})"
+
     return event["recipientAccountId"]
 
+
 def slack_event_link(event):
-    return SEARCH_PREFIX + ";filter=%22" + event["eventID"] + "%22"
+    """Generate and return the Slack event link."""
+    return f"{SEARCH_PREFIX};filter=%22{event['eventID']}%22"
