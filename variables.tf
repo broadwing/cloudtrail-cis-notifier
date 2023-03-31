@@ -25,3 +25,15 @@ variable "resource_name" {
   default     = "cloudtrail-cis-notifier"
   description = "The name of the resources to create. Such as the lambda function, cloudwatch log group, etc."
 }
+
+variable "skip_event_names" {
+  type        = list(string)
+  default     = []
+  description = "A list of event names to skip. (eg. CreateTrail, AuthorizeSecurityGroupIngress)"
+}
+
+variable "skip_rule_ids" {
+  type        = list(string)
+  default     = []
+  description = "A list of rules to skip. (eg. 3.2, 3.5)"
+}

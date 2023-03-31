@@ -51,7 +51,7 @@ class TestLambdaFunction(unittest.TestCase):
             "errorCode": "UnauthorizedOperation"
         }
         result = cloudtrail_cis_notifier.match_event(event)
-        self.assertEqual(result, "3.1 Unauthorized API Call")
+        self.assertEqual(result, ("3.1", "Unauthorized API Call"))
 
     def test_format_slack_attachment(self):
         event = {
@@ -67,30 +67,37 @@ class TestLambdaFunction(unittest.TestCase):
             "userAgent": "TestAgent",
             "recipientAccountId": "123456789012"
         }
-        matched_rule = "3.1 Unauthorized API Call"
+        matched_rule = ("3.1", "Unauthorized API Call")
         result = cloudtrail_cis_notifier.format_slack_attachment(event, matched_rule)
         self.assertEqual(result["fallback"], "AWS Event TestEvent - test.amazonaws.com by User testuser")
+        self.assertEqual(result["color"], "")
+        self.assertEqual(result["author_name"], "User testuser on Account: 123456789012")
+        self.assertEqual(result["title"], "TestEvent - test.amazonaws.com")
+        self.assertEqual(result["title_link"], "None;filter=%22testEventId%22")
+        self.assertEqual(result["footer"], "Agent: TestAgent")
+        self.assertEqual(result["footer_icon"], "https://a0.awsstatic.com/main/images/logos/aws_logo_smile_1200x630.png")
+        self.assertEqual(result["ts"], 1627354794)
 
     def test_sample_events(self):
         tests = [
-                    (0, "3.1 Unauthorized API Call"),
-                    (1, "3.2 Console Login without MFA"),
-                    (2, "3.3 Root Account Used"),
-                    (3, "3.4 IAM Policy Changed"),
-                    (4, "3.5 CloudTrail Configuration Changed"),
-                    (5, "3.5 CIS Slack Notifier Lambda Code Changed"),
-                    (6, "3.5 CIS Slack Notifier Log Group or Subscription Filter Changed"),
-                    (7, "3.6 Console Login Failure - Failed Authentication"),
-                    (8, "3.6 Console Login Failure"),
-                    (9, "3.7 Scheduled Deletion of KMS"),
-                    (10, "3.8 S3 Bucket Policy Changed"),
-                    (11, "3.9 Config Service Changed"),
-                    (12, "3.10 Security Group Changed"),
-                    (13, "3.11 Network ACL Changed"),
-                    (14, "3.12 Network Gateway Changed"),
-                    (15, "3.13 Network Route Table Changed"),
-                    (16, "3.14 VPC Changed"),
-                    (17, "3.15 SNS Subscribers Changed"),
+                    (0, ("3.1", "Unauthorized API Call")),
+                    (1, ("3.2", "Console Login without MFA")),
+                    (2, ("3.3", "Root Account Used")),
+                    (3, ("3.4", "IAM Policy Changed")),
+                    (4, ("3.5", "CloudTrail Configuration Changed")),
+                    (5, ("3.5", "CIS Slack Notifier Lambda Code Changed")),
+                    (6, ("3.5", "CIS Slack Notifier Log Group or Subscription Filter Changed")),
+                    (7, ("3.6", "Console Login Failure - Failed Authentication")),
+                    (8, ("3.6", "Console Login Failure")),
+                    (9, ("3.7", "Scheduled Deletion of KMS")),
+                    (10, ("3.8", "S3 Bucket Policy Changed")),
+                    (11, ("3.9", "Config Service Changed")),
+                    (12, ("3.10", "Security Group Changed")),
+                    (13, ("3.11", "Network ACL Changed")),
+                    (14, ("3.12", "Network Gateway Changed")),
+                    (15, ("3.13", "Network Route Table Changed")),
+                    (16, ("3.14", "VPC Changed")),
+                    (17, ("3.15", "SNS Subscribers Changed")),
                     (18, False),
                     (19, False),
                 ]
@@ -100,6 +107,31 @@ class TestLambdaFunction(unittest.TestCase):
             event = json.loads(message)
             self.assertEqual(cloudtrail_cis_notifier.match_event(event), test[1], f"Failed test {id}")
 
+    def test_skipped_event_name(self):
+        # Bucket policy changed event
+        event = json.loads(self.test_messages["logEvents"][10]["message"])
+        attachments, skipped_events = cloudtrail_cis_notifier.get_matched_event_attachments([event])
+        self.assertEqual(len(attachments), 1)
+        self.assertEqual(skipped_events, 0)
+
+        # Set event name to something that should be skipped
+        cloudtrail_cis_notifier.SKIP_EVENT_NAMES = ["PutBucketPolicy"]
+        attachments, skipped_events = cloudtrail_cis_notifier.get_matched_event_attachments([event])
+        self.assertEqual(len(attachments), 0)
+        self.assertEqual(skipped_events, 1)
+
+    def test_skipped_rule_id(self):
+        # Bucket policy changed event
+        event = json.loads(self.test_messages["logEvents"][16]["message"])
+        attachments, skipped_events = cloudtrail_cis_notifier.get_matched_event_attachments([event])
+        self.assertEqual(len(attachments), 1)
+        self.assertEqual(skipped_events, 0)
+
+        # Set event name to something that should be skipped
+        cloudtrail_cis_notifier.SKIP_RULE_IDS = ["3.14"]
+        attachments, skipped_events = cloudtrail_cis_notifier.get_matched_event_attachments([event])
+        self.assertEqual(len(attachments), 0)
+        self.assertEqual(skipped_events, 1)
 
 if __name__ == "__main__":
     unittest.main()

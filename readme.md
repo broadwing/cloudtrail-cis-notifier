@@ -42,7 +42,7 @@ You can also simulate events and trigger messages by
   2. Open the lambda function in the in the aws console
   3. Click the `Test` tab and paste the generated message into the `Event Json` and click `Test`
 
-## Alerts
+## Alert Rules
 | Name | Description|
 | ---- | ----------|
 | `3.1 Unauthorized API Call` | Event is an `UnauthorizedOperation` or `AccessDenied`

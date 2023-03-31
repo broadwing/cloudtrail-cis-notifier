@@ -22,14 +22,19 @@ SEARCH_PREFIX = os.environ.get('search_prefix', None)
 
 RESOURCE_NAME = os.environ.get('resource_name', None)
 
+# Set KIP_EVENT_NAMES from an environment variable as json array
+SKIP_EVENT_NAMES = os.environ.get('skip_event_names', [])
+if SKIP_EVENT_NAMES:
+    SKIP_EVENT_NAMES = json.loads(SKIP_EVENT_NAMES)
+
+SKIP_RULE_IDS = os.environ.get('skip_rule_ids', [])
+if SKIP_RULE_IDS:
+    SKIP_ALERT_IDS = json.loads(SKIP_RULE_IDS)
+
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 logger.info(SLACK_CHANNEL)
-
-# Skipped Event Names
-SKIP_EVENT_NAMES = ["CreateLogStream"]
-
 
 def lambda_handler(event, context):
     """Lambda function entry point."""
@@ -38,20 +43,13 @@ def lambda_handler(event, context):
         logger.info(f"event: {str(event)}")
         return
 
-    ctevents = get_events(event)
+    events = get_events(event)
 
-    if len(ctevents) == 0:
+    if len(events) == 0:
         logger.info("Skipping - no events in data")
         return
 
-    attachments = []
-    skipped_events = 0
-    for ctevent in ctevents:
-        matchedRule = match_event(ctevent)
-        if matchedRule:
-            attachments.append(format_slack_attachment(ctevent, matchedRule))
-        else:
-            skipped_events += 1
+    attachments, skipped_events = get_matched_event_attachments(events)
 
     if skipped_events:
         logger.info(f"Skipped {skipped_events} events")
@@ -86,63 +84,81 @@ def get_events(data):
 
     return events
 
+def get_matched_event_attachments(events):
+    attachments = []
+    skipped_events = 0
+    for event in events:
+        matchedRule = match_event(event)
+        if matchedRule:
+            if "eventName" in event and event["eventName"] in SKIP_EVENT_NAMES:
+                logger.info(f"Skipping Matched Event Name {event['eventName']}")
+                skipped_events += 1
+            elif matchedRule[0] in SKIP_RULE_IDS:
+                logger.info(f"Skipping Matched Rule ID {matchedRule[0]} {matchedRule[1]}")
+                skipped_events += 1
+            else:
+                attachments.append(format_slack_attachment(event, matchedRule))
+        else:
+            skipped_events += 1
+
+    return attachments, skipped_events
 
 def match_event(event):
     """Match events based on predefined rules and return the matched rule."""
     try:
         # 3.1 Unauthorized API
         if "errorCode" in event and ("UnauthorizedOperation" in event["errorCode"] or "AccessDenied" in event["errorCode"]):
-            return "3.1 Unauthorized API Call"
+            return ("3.1", "Unauthorized API Call")
         # 3.2 Login with No MFA
         if event["eventName"] == "ConsoleLogin" and event["additionalEventData"]["MFAUsed"] != "Yes" and "errorMessage" not in event:
-            return "3.2 Console Login without MFA"
+            return ("3.2", "Console Login without MFA")
         # 3.3 Root Account Used
         if event["userIdentity"]["type"] == "Root" and "invokedBy" not in event["userIdentity"] and event["eventType"] != "AwsServiceEvent":
-            return "3.3 Root Account Used"
+            return ("3.3", "Root Account Used")
         # 3.4 Iam Policy Changed
         if event["eventName"] in ["DeleteGroupPolicy", "DeleteRolePolicy", "DeleteUserPolicy", "PutGroupPolicy", "PutRolePolicy", "PutUserPolicy", "CreatePolicy", "DeletePolicy", "CreatePolicyVersion", "DeletePolicyVersion", "AttachRolePolicy", "DetachRolePolicy", "AttachUserPolicy", "DetachUserPolicy", "AttachGroupPolicy", "DetachGroupPolicy"]:
-            return "3.4 IAM Policy Changed"
+            return ("3.4", "IAM Policy Changed")
         # 3.5 Cloudtrail Configuration Changed
         if event["eventName"] in ["CreateTrail", "UpdateTrail", "DeleteTrail", "StartLogging", "StopLogging"]:
-            return "3.5 CloudTrail Configuration Changed"
+            return ("3.5", "CloudTrail Configuration Changed")
         # 3.5 Slack-notifier code changed
         if "UpdateFunctionCode" in event["eventName"] and "functionName" in event["responseElements"] and event["responseElements"]["functionName"] == RESOURCE_NAME:
-            return "3.5 CIS Slack Notifier Lambda Code Changed"
+            return ("3.5", "CIS Slack Notifier Lambda Code Changed")
         if event["eventSource"] == "logs.amazonaws.com" and event["eventName"] in ["PutSubscriptionFilter", "DeleteSubscriptionFilter", "DeleteLogGroup"] and "logGroupName" in event["requestParameters"] and event["requestParameters"]["logGroupName"] in ["/aws/cloudtrail/" + RESOURCE_NAME, "/aws/lambda/" + RESOURCE_NAME]:
-            return "3.5 CIS Slack Notifier Log Group or Subscription Filter Changed"
+            return ("3.5", "CIS Slack Notifier Log Group or Subscription Filter Changed")
         # 3.6 Console Login Failure
         if event["eventName"] == "ConsoleLogin" and "errorMessage" in event and event["errorMessage"] == "Failed authentication":
-            return "3.6 Console Login Failure - Failed Authentication"
+            return ("3.6", "Console Login Failure - Failed Authentication")
         # 3.6 Console Login Failure
         if event["eventName"] == "ConsoleLogin" and "errorMessage" in event:
-            return "3.6 Console Login Failure"
+            return ("3.6", "Console Login Failure")
         # 3.7 Scheduled Deletion of CMK
         if event["eventSource"] == "kms.amazonaws.com" and event["eventName"] in ["DisableKey", "ScheduleKeyDeletion"]:
-            return "3.7 Scheduled Deletion of KMS"
+            return ("3.7", "Scheduled Deletion of KMS")
         # 3.8 S3 Bucket Policy Changed
         if event["eventSource"] == "s3.amazonaws.com" and event["eventName"] in ["PutBucketAcl", "PutBucketPolicy", "PutBucketCors", "PutBucketLifecycle", "PutBucketReplication", "DeleteBucketPolicy", "DeleteBucketCors", "DeleteBucketLifecycle", "DeleteBucketReplication"]:
-            return "3.8 S3 Bucket Policy Changed"
+            return ("3.8", "S3 Bucket Policy Changed")
         # 3.9 Config Service Changed
         if event["eventSource"] == "config.amazonaws.com" and event["eventName"] in ["StopConfigurationRecorder", "DeleteDeliveryChannel", "PutDeliveryChannel", "PutConfigurationRecorder"]:
-            return "3.9 Config Service Changed"
+            return ("3.9", "Config Service Changed")
         # 3.10 Security Group Changed
         if event["eventName"] in ["AuthorizeSecurityGroupIngress", "AuthorizeSecurityGroupEgress", "RevokeSecurityGroupIngress", "RevokeSecurityGroupEgress", "CreateSecurityGroup", "DeleteSecurityGroup"]:
-            return "3.10 Security Group Changed"
+            return ("3.10", "Security Group Changed")
         # 3.11 Network ACL Changed
         if event["eventName"] in ["CreateNetworkAcl", "CreateNetworkAclEntry", "DeleteNetworkAcl", "DeleteNetworkAclEntry", "ReplaceNetworkAclEntry", "ReplaceNetworkAclAssociation"]:
-            return "3.11 Network ACL Changed"
+            return ("3.11", "Network ACL Changed")
         # 3.12 Network Gateway Changed
         if event["eventName"] in ["CreateCustomerGateway", "DeleteCustomerGateway", "AttachInternetGateway", "CreateInternetGateway", "DeleteInternetGateway", "DetachInternetGateway"]:
-            return "3.12 Network Gateway Changed"
+            return ("3.12", "Network Gateway Changed")
         # 3.13 Network Route Table Changed
         if event["eventName"] in ["CreateRoute", "CreateRouteTable", "ReplaceRoute", "ReplaceRouteTableAssociation", "DeleteRouteTable", "DeleteRoute", "DisassociateRouteTable"]:
-            return "3.13 Network Route Table Changed"
+            return ("3.13", "Network Route Table Changed")
         # 3.14 VPC Changed
         if event["eventName"] in ["CreateVpc", "DeleteVpc", "ModifyVpcAttribute", "AcceptVpcPeeringConnection", "CreateVpcPeeringConnection", "DeleteVpcPeeringConnection", "RejectVpcPeeringConnection", "AttachClassicLinkVpc", "DetachClassicLinkVpc", "DisableVpcClassicLink", "EnableVpcClassicLink"]:
-            return "3.14 VPC Changed"
+            return ("3.14", "VPC Changed")
         # 3.15 SNS Subscribers Changed
         if event["eventSource"] == "sns.amazonaws.com" and event["eventName"] in ["CreateTopic", "Subscribe", "Unsubscribe", "DeleteTopic"]:
-            return "3.15 SNS Subscribers Changed"
+            return ("3.15", "SNS Subscribers Changed")
     except Exception as e:
         logger.error(e)
         return f"Match Error: {e}"
@@ -150,16 +166,17 @@ def match_event(event):
     return False
 
 
-def format_slack_attachment(event, matchedRule=""):
+def format_slack_attachment(event, matchedRule):
     """Format and return a Slack attachment for the given event and matched rule."""
+    matchedRuleText = f"{matchedRule[0]} {matchedRule[1]}"
     return {
         "fallback": slack_fallback_text(event),
         "color": slack_color(event),
         "author_name": f"{slack_user(event)} on Account: {slack_account(event)}",
         "title": slack_event_title(event),
-        "text": slack_event_text(event, matchedRule),
+        "text": slack_event_text(event, matchedRuleText),
         "title_link": slack_event_link(event),
-        "footer": slack_event_footer(event, matchedRule),
+        "footer": slack_event_footer(event, matchedRuleText),
         "footer_icon": "https://a0.awsstatic.com/main/images/logos/aws_logo_smile_1200x630.png",
         "ts": slack_time(event)
     }
