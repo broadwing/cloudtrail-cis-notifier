@@ -76,7 +76,7 @@ class TestLambdaFunction(unittest.TestCase):
         self.assertEqual(result["title_link"], "None;filter=%22testEventId%22")
         self.assertEqual(result["footer"], "Agent: TestAgent")
         self.assertEqual(result["footer_icon"], "https://a0.awsstatic.com/main/images/logos/aws_logo_smile_1200x630.png")
-        self.assertEqual(result["ts"], 1627354794)
+        self.assertEqual(result["ts"], 1627329594)
 
     def test_sample_events(self):
         tests = [

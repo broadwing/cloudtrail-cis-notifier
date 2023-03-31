@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import gzip
-import time
+import dateutil.parser as dp
 
 from base64 import b64decode
 from urllib.request import Request, urlopen
@@ -238,7 +238,7 @@ def slack_color(event):
 
 def slack_time(event):
     """Convert and return the event time to Slack timestamp format."""
-    return int(time.mktime(time.strptime(event["eventTime"], "%Y-%m-%dT%H:%M:%SZ")))
+    return dp.parse(event["eventTime"]).timestamp()
 
 
 def slack_account(event):
