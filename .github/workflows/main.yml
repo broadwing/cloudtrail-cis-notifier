@@ -26,12 +26,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Build coverage file
+    - name: Run tests
       working-directory: lambda-source
       run: |
-        pytest --junitxml=pytest.xml test_cloudtrail_cis_notifier.py | tee pytest-coverage.txt
+        pytest --junitxml=pytest.xml test_cloudtrail_cis_notifier.py
 
-    - name: Pytest coverage comment
+    - name: Pytest comment
+      if: success() || failure()    # run this step even if previous step failed
       uses: MishaKav/pytest-coverage-comment@main
       with:
         junitxml-path: lambda-source/pytest.xml
