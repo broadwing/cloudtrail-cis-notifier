@@ -29,7 +29,9 @@ module "cloudtrail-cis-notifier" {
 | <a name="input_slack_hook_url"></a> [slack\_hook\_url](#input\_slack\_hook\_url) | The slack api hook url used to send the notification. (eg https://hooks.slack.com/services/xxxx/xxxx/xxxxxxxxxxxxx) | `string` | | yes |
 | <a name="input_account_name"></a> [account\_name](#input\_accoun\_name) | An optional account name that will be added to all messages if set. Useful if deployed to multiple accounts | `string` | `""` | no |
 | <a name="input_is_organization_trail"></a> [is\_organization\_trail](#input\_is\_organization\_trail) | Whether or not this is an organization trail. Can only be set to true if deploying this to a master account | `bool` | `false` | no |
-| <a name="input_resource_name"></a> [resource\_name](#input\_resource\_name) |The name of the resources to create. Such as the lambda function, cloudwatch log group, etc. | `string` | `cloudtrail-cis-notifier` | no |
+| <a name="input_resource_name"></a> [resource\_name](#input\_resource\_name) | The name of the resources to create. Such as the lambda function, cloudwatch log group, etc. | `string` | `cloudtrail-cis-notifier` | no |
+| <a name="input_skip_event_names"></a> [skip\_event\_names](#input\_skip\_event\_names) | A list of event names to skip. (eg. CreateTrail, AuthorizeSecurityGroupIngress) | `list(string)` | `[]` | no |
+| <a name="input_skip_rule_ids"></a> [skip\_rule\_ids](#input\_skip\_rule\_ids) | A list of rules to skip. (eg. 3.2, 3.5) | `list(string)` | `[]` | no |
 
 
 ## Testing
