@@ -17,7 +17,7 @@ resource "aws_lambda_function" "cloudtrail_cis_notifier" {
       account_name     = var.account_name
       slack_channel    = var.slack_channel
       hook_url         = var.slack_hook_url
-      SEARCH_PREFIX    = "https://console.aws.amazon.com/cloudwatch/home?region=${data.aws_region.current.name}#logEventViewer:group=${aws_cloudwatch_log_group.cloudtrail_cis_notifier.name}"
+      search_prefix    = "https://console.aws.amazon.com/cloudwatch/home?region=${data.aws_region.current.name}#logEventViewer:group=${aws_cloudwatch_log_group.cloudtrail_cis_notifier.name}"
       resource_name    = var.resource_name
       skip_event_names = jsonencode(var.skip_event_names)
       skip_rule_ids    = jsonencode(var.skip_rule_ids)
