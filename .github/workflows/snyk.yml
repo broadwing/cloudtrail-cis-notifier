@@ -3,6 +3,9 @@ on: push
 jobs:
   security:
     runs-on: ubuntu-latest
+    strategy:
+        matrix:
+          python: ["3.10"]
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
@@ -10,7 +13,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.10'
+          python-version: ${{ matrix.python }}
           cache: 'pip'
 
       - name: Install dependencies
@@ -18,9 +21,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r ./lambda-source/requirements.txt
           npm install --no-fund snyk -g
-
       - name: Run Snyk to check for vulnerabilities
         run: |
-          snyk test --file=./lambda-source/requirements.txt
+          snyk test --org=$ORG --file=./lambda-source/requirements.txt
         env:
             SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+            ORG: broadwing-limited
